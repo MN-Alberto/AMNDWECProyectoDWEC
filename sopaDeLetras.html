@@ -6,7 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sopa de Letras</title>
     <style>
+
         body{
+            margin: 0;
+            padding: 0;
+        }
+
+        #mostrarTabla{
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -14,21 +20,108 @@
         }
         h1{
             text-decoration: underline;
-        }
-        td{
-            width: 20px;
-            height: 20px;
             text-align: center;
         }
+        td{
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            border-width: 2px;
+        }
+
+        footer{
+            margin: auto;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            text-align: center;
+            width: 100%;
+            background-color: rgb(255, 187, 0);
+        }
+        header{
+            background-color: rgb(255, 187, 0);
+            height: 100px;
+            margin-bottom: 40px;
+            line-height: 100px;
+        }
+
+        td:hover{
+            scale: 1.4;
+            background-color: lightgreen;
+            font-weight: bold;
+        }
+
+        table{
+            border-collapse: collapse;
+        }
+
+        #barraOfline{
+            width: 100%;
+            text-align: center;
+        }
+
+        #mostrarPalabras{
+            position: relative;
+            top: -480px;
+            left: 1400px;
+            border: 1px solid black;
+            width: 200px;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        #mostrarPalabras p{
+            border: 1px solid black;
+        }
+
     </style>
 </head>
 <body>
+    <header>
+    <div id="barraOfline"></div>
     <h1>SOPA DE LETRAS</h1>
+    </header>
+    <main>
     <div id="mostrarTabla">
 
     </div>
 
+    <div id="mostrarPalabras">
+
+    </div>
+    </main>
+    <footer style="display: row;">
+        <p>© Todos los derechos reservados. Alberto Méndez Núñez.</p>
+        <p id="hora"></p>
+    </footer>
+
+    
     <script defer>
+
+        function horaActual(){
+            var horaAct=new Date();
+
+            return horaAct.getHours()+":"+horaAct.getMinutes()+":"+horaAct.getSeconds();
+        }
+
+        var textoHora=document.getElementById("hora");
+
+        setInterval(function(){
+
+            textoHora.innerHTML="Hora actual: "+horaActual();
+
+        },1000);
+
+
+        if(!navigator.cookieEnabled){
+            alert("No se pueden guardar las puntuaciones ya que las Cookies del navegador deben estar habilitadas.");
+        }
+
+        if(!navigator.onLine){
+            var textoOfline="<h4 style=background-color:red;>No hay red</h4>";
+            document.getElementById("barraOfline").innerHTML=textoOfline;
+        }
 
         var palabras=[
             "PERRO", "GATO", "CASA", "ARBOL", "COCHE",
@@ -37,14 +130,21 @@
             "FAMILIA", "COMIDA", "JUEGO", "MUSICA", "CIUDAD",
             "CAFE", "TE", "JUGO", "AGUA", "CIENCIA",
             "TECNOLOGIA", "MATEMATICAS", "HISTORIA", "GEOGRAFIA", "LENGUAJE",
-            "ARTE", "MUSICA", "DEPORTE", "FUTBOL", "BALONCESTO",
-            "TENIS", "NATACION", "CINE", "TEATRO", "DANZA",
-            "PINTURA", "ESCULTURA", "LIBRERIA", "MERCADO", "TIENDA",
-            "BIBLIOTECA", "HOSPITAL", "PARQUE", "PLAZA", "CALLE",
-            "PUENTE", "TORRE", "CASTILLO", "IGLESIA", "TEMPLO",
-            "ESTACION", "AEROPUERTO", "BARCO", "TREN", "AUTOBUS",
-            "BICICLETA", "MOTOCICLETA", "AUTO", "CAMION", "SEMAFORO"
+            "ARTE", "MUSICA", "DEPORTE", "FUTBOL"
         ];
+
+
+        function mostrarPalabras(pa){
+            const mosPa = document.getElementById("mostrarPalabras");
+            mosPa.innerHTML = "";
+
+            pa.forEach(palabra => {
+                mosPa.innerHTML += `<p>${palabra}</p>`;
+            });
+        }
+
+
+        mostrarPalabras(palabras);
 
         var dimension=0;
 
@@ -82,17 +182,117 @@
         let tablero = Array.from({ length: filas }, () => Array(columnas).fill(""));
 
         
-        function crearTabla(tablero) {
-            let tabla = "<table border='1'>";
-            for (let i = 0; i < tablero.length; i++) {
-                tabla += "<tr>";
-                for (let j = 0; j < tablero[i].length; j++) {
-                    tabla += `<td>${tablero[i][j]}</td>`;
-                }
-                tabla += "</tr>";
+        let activo=false;
+
+        class Seleccionar{
+
+            constructor(){
+                this.celda=null;
+                this.pos=null;
+                this.activo=false;
+                this.direccion = null;
             }
-            tabla += "</table>";
-            document.getElementById("mostrarTabla").innerHTML = tabla;
+
+            selecc(cel, fila, col){
+
+            this.activo=!this.activo;
+
+            if (this.celda) {
+                this.celda.style.backgroundColor = "grey";
+                this.celda.style.transform = "scale(1)";
+            }
+
+            this.celda = cel;
+            this.pos={fila, col};
+            this.direccion = null;
+
+            cel.style.backgroundColor = "grey";
+            }
+
+
+            direccionValida(fila, col) {
+                if (!this.pos){
+                    return false;
+                }
+
+                let df = fila - this.pos.fila;
+                let dc = col - this.pos.col;
+
+                if (this.direccion !== null && df === 0 && dc === 0) {
+                    return false;
+                }
+
+
+                if (this.direccion === null) {
+
+                    if (df === 0 && dc !== 0) {
+                        this.direccion = "horizontal";
+                    } else if (dc === 0 && df !== 0) {
+                        this.direccion = "vertical";
+                    } else if (Math.abs(df) === Math.abs(dc)) {
+                        this.direccion = "diagonal";
+                    } else {
+                        return false;
+                    }
+
+                    this.pos = { fila, col };
+
+                    return true;
+                }
+
+                df = fila - this.pos.fila;
+                dc = col - this.pos.col;
+
+                if (this.direccion === "horizontal") {
+                    return df === 0;
+                }
+
+                if (this.direccion === "vertical") {
+                    return dc === 0;
+                }
+
+                if (this.direccion === "diagonal") {
+                    return Math.abs(df) === Math.abs(dc);
+                }
+
+                return false;
+            }
+        }
+
+        const seleccion = new Seleccionar();
+
+        function crearTabla(tablero) {
+            const contenedor = document.getElementById("mostrarTabla");
+            contenedor.innerHTML = "";
+
+            const tabla = document.createElement("table");
+            tabla.border = "1";
+
+            for (let i = 0; i < tablero.length; i++) {
+                const fila = document.createElement("tr");
+
+                for (let j = 0; j < tablero[i].length; j++) {
+                    const celda = document.createElement("td");
+                    celda.textContent = tablero[i][j];
+
+                    celda.addEventListener("click", () => {
+                        seleccion.selecc(celda,i,j);
+                    });
+
+                    celda.addEventListener("mouseover", () => {
+                        if(seleccion.activo && seleccion.direccionValida(i,j)){
+                        celda.style.backgroundColor = "grey";
+                        }
+                    });
+
+
+                    fila.appendChild(celda);
+                }
+
+                tabla.appendChild(fila);
+            }
+
+            contenedor.appendChild(tabla);
         }
 
 
@@ -192,7 +392,7 @@
 
 
         function pintarTablero(tablero){
-                        for (let palabra of palabras) {
+                    for (let palabra of palabras) {
                     let colocada = false;
 
                     for (let intento = 0; intento < 100; intento++) {
@@ -202,6 +402,7 @@
                         if (comprobarPosicionValida(tablero, palabra, posAleatoria, direccion)) {
                             escribirPalabra(tablero, palabra, posAleatoria, direccion);
                             colocada = true;
+                            
                             break;
                         }
                     }
@@ -241,38 +442,3 @@
     </script>
 </body>
 </html>
-
-
-
-<!-- calcularDimension(palabras)
-        crearTabla(dimension,tablero)
-        calcularPosicionAleaotria(dimension)
-        calcularDireccionAleatoria()
-        comprobarPosicionValida(tablero,aPalabras,posicion,direccion)
-        escribirPalabra(tablero,palabra,posicion,direccion)
-rellenarEspaciosTablero(tablero)
-        pintarTablero(tablero)
- -->
-
-
- 
-<!-- 
--- PRIMERA PARTE -- 
-
- 
-
-Crear el tablero a partir de una serie de palabras dadas. Se pasará como parámetro un array de palabras y en función del número de palabras y del tamaño de la palabra más larga, crearemos el tablero con las dimensiones adecuadas. El tablero será un array multidimensional en el que en cada posición almacenará una letra. Las condiciones que debe cumplir el tamaño del tablero son las siguientes: 
-
-La dimensión mínima del tablero será la de la palabra más larga. 
-
-El tablero tendrá como mínimo el doble del total de letras de todas las palabras. 
-
-Las palabras se colocarán en el tablero de forma aleatoria y pueden escribirse dentro del mismo en cualquier dirección y pudiéndose cruzar. 
-
-Una vez que las palabras estén colocadas en el tablero se rellenará el resto del tablero con letras pseudoaleatorias (70% consonantes, 30% vocales). 
-
-Divide el problema en funciones más pequeñas que ayuden a modularizar el problema y encontrar la solución de forma más sencilla. 
-
-Se debe mostrar el tablero en el documento, esto será una única función que recibirá el array multidimensional y lo pintará en la web.   -->
-
- 
